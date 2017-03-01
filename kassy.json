@@ -1,0 +1,6 @@
+{
+    "name": "ssh",
+    "version": 1.0,
+    "type": "integration",
+    "startup": "ssh.js"
+}
