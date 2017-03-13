@@ -2,7 +2,9 @@ const ssh2 = require('ssh2'),
     figlet = require('figlet'),
     path = require('path'),
     fs = require('fs'),
-    readline = require('readline');
+    readline = require('readline'),
+    origWrite = process.stdout.write,
+    origErr = process.stderr.write;
 
 class SshIntegration extends shim {
     constructor(config, onMessage) {
@@ -137,9 +139,30 @@ class SshIntegration extends shim {
                 throw new Error(err);
             }
         });
+        
+        const self = this;
+        process.stdout.write = function (data) {
+            origWrite.apply(this, arguments);
+            for (let thread in self._threads) {
+                for (let connection of self._threads[thread]) {
+                    connection.write(data);
+                }
+            }
+        };
+        process.stderr.write = function (data) {
+            origWrite.apply(this, arguments);
+            for (let thread in self._threads) {
+                for (let connection of self._threads[thread]) {
+                    connection.write(data);
+                }
+            }
+        };
     }
 
     stop() {
+        process.stdout.write = origWrite;
+        process.stderr.write = origErr;
+        
         for (let thread of Object.keys(this._threads)) {
             for (let connection of this._threads[thread]) {
                 connection.close();
